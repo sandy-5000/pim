@@ -197,7 +197,7 @@ def copy_to_clipboard(start, end):
     if end == '.':
         end_x = cursor_x - 1
         end_y = view_y + cursor_y
-    else:
+    elif end != '':
         end_y = min(end - 1, len(text) - 1)
         end_x = len(text[end_y]) - 1
 
@@ -255,12 +255,12 @@ def normal_mode(key):
             save_file()
         elif command == ':r':
             open_file()
-        elif command.startswith(':set'):
-            r = command[4:]
+        elif command.startswith(':set '):
+            r = command[5:]
             if r == 'nu':
                 number_set = True
-        elif command.startswith(':unset'):
-            r = command[6:]
+        elif command.startswith(':unset '):
+            r = command[7:]
             if r == 'nu':
                 number_set = False
         elif command.startswith(':y'):
@@ -295,6 +295,7 @@ def draw_screen(stdscr):
     global message
 
     height, width = stdscr.getmaxyx()
+    width -= 1
     view_port_height = height - 2
 
     stdscr.clear()
@@ -322,7 +323,8 @@ def draw_screen(stdscr):
     elif width_diff < 0:
         mode_or_cmd = mode_or_cmd[-command_width:]
     stdscr.addstr(height - 2, 0, f"File: {file_name[:width - 6]}")
-    stdscr.addstr(height - 1, 0, f"{mode_or_cmd} Line: {cursor_y + view_y + 1}, Col: {cursor_x + 1}")
+    mode_and_position = f"{mode_or_cmd} Line: {cursor_y + view_y + 1}, Col: {cursor_x + 1}"
+    stdscr.addstr(height - 1, 0, mode_and_position)
     line_number_padding = number_bar_width if number_set else 0
     stdscr.move(cursor_y, line_number_padding + cursor_x)
     stdscr.refresh()
