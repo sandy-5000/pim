@@ -1,11 +1,14 @@
 import sys
 import os
 import curses
+import pyperclip
+
 
 file_name = None
 
 mode = 'NORMAL'
 command = ''
+message = ''
 text = ['']
 view_y = 0
 cursor_x = 0
@@ -93,6 +96,7 @@ def handle_backspace():
     global view_y
     global cursor_x
     global cursor_y
+    global number_bar_width
 
     index_y = cursor_y + view_y
     if cursor_x > 0:
@@ -107,6 +111,7 @@ def handle_backspace():
         else:
             cursor_y -= 1
         cursor_x = prev_line_len
+    number_bar_width = len(str(len(text))) + 1
 
 
 def handle_enter():
@@ -115,6 +120,7 @@ def handle_enter():
     global cursor_x
     global cursor_y
     global view_port_height
+    global number_bar_width
 
     index_y = cursor_y + view_y
     new_line = text[index_y][cursor_x:]
@@ -128,6 +134,90 @@ def handle_enter():
     if cursor_y < view_port_height - 1:
         cursor_y += 1
     cursor_x = spaces_len
+    number_bar_width = len(str(len(text))) + 1
+
+
+def paste_from_clipboard():
+    global text
+    global width
+    global view_y
+    global cursor_x
+    global cursor_y
+    global view_port_height
+    global number_bar_width
+
+    copied_text = pyperclip.paste()
+    copied_text = copied_text.replace('\r', '').replace('\t', ' ' * 4)
+    index_y = cursor_y + view_y
+    new_line = text[index_y][:cursor_x] + copied_text + text[index_y][cursor_x:]
+    btw_lines = [*new_line.split('\n')]
+    text = text[:index_y] + btw_lines + text[index_y + 1:]
+    length = len(btw_lines) - 1
+    if cursor_y + length >= view_port_height - 1:
+        view_y += cursor_y + length - view_port_height + 1
+    cursor_y = min(view_port_height - 1, cursor_y + length)
+    if length:
+        cursor_x = len(btw_lines[-1])
+    else:
+        cursor_x = min(cursor_x + len(copied_text), width)
+    number_bar_width = len(str(len(text))) + 1
+
+
+def copy_to_clipboard(start, end):
+    global text
+    global view_y
+    global cursor_x
+    global cursor_y
+    global message
+
+    if start != '' and start != '.':
+        try:
+            start = int(start)
+        except:
+            message = 'Invalid number format'
+            return
+    if end != '' and end != '.':
+        try:
+            end = int(end)
+        except:
+            message = 'Invalid number format'
+            return
+
+    start_x, start_y = 0, 0
+    end_x = len(text[-1]) - 1 if text else 0
+    end_y = len(text) - 1
+
+    if start == '.':
+        start_x = cursor_x
+        start_y = view_y + cursor_y
+    elif start != '':
+        start_y = max(0, start - 1)
+        start_x = 0
+
+    if end == '.':
+        end_x = cursor_x - 1
+        end_y = view_y + cursor_y
+    else:
+        end_y = min(end - 1, len(text) - 1)
+        end_x = len(text[end_y]) - 1
+
+    if [start_y, start_x] > [end_y, end_x]:
+        message = 'Invalid Range'
+        return
+
+    text_to_copy = ''
+    if start_y == end_y:
+        text_to_copy = text[start_y][start_x:end_x + 1]
+    else:
+        for y in range(start_y, end_y + 1):
+            if y == end_y:
+                text_to_copy += text[y][:end_x + 1] + '\n'
+            elif y == start_y:
+                text_to_copy += text[y][start_x:] + '\n'
+            else:
+                text_to_copy += text[y] + '\n'
+    pyperclip.copy(text_to_copy)
+    message = f'yanked {end_y - start_y + 1} lines.'
 
 
 def handle_all_keys(key):
@@ -148,24 +238,43 @@ def normal_mode(key):
     global mode
     global command
     global number_set
+    global message
 
     if command == '' and key == ord('i'):
         mode = 'INSERT'
+    elif command == '' and key == ord('p'):
+        paste_from_clipboard()
     elif key in (curses.KEY_BACKSPACE, 127, 8):
         if command:
             command = command[0:len(command) - 1]
     elif key in (curses.KEY_ENTER, 10):
-        if command.strip() == ':q':
-            command = ''
+        command = command.strip()
+        if command == ':q':
             return False
-        elif command.strip() == ':w':
+        elif command == ':w':
             save_file()
-        elif command.strip() == ':r':
+        elif command == ':r':
             open_file()
-        elif command.strip() == ':nu':
-            number_set = not number_set
+        elif command.startswith(':set'):
+            r = command[4:]
+            if r == 'nu':
+                number_set = True
+        elif command.startswith(':unset'):
+            r = command[6:]
+            if r == 'nu':
+                number_set = False
+        elif command.startswith(':y'):
+            r = command[2:].split(',')
+            if len(r) != 2:
+                message = 'Invalid positions'
+            else:
+                copy_to_clipboard(r[0].strip(), r[1].strip())
+        else:
+            message = 'Invalid command'
         command = ''
-    else:
+    elif key == ord(':'):
+        command = ':'
+    elif command and command[0] == ':':
         command = command + chr(key)
     return True
 
@@ -183,6 +292,7 @@ def draw_screen(stdscr):
     global view_port_height
     global number_bar_width
     global number_set
+    global message
 
     height, width = stdscr.getmaxyx()
     view_port_height = height - 2
@@ -203,6 +313,9 @@ def draw_screen(stdscr):
     mode_or_cmd = f'-- {mode} --'
     if mode == 'NORMAL' and command:
         mode_or_cmd = command
+        message = ''
+    if mode == 'NORMAL' and message:
+        mode_or_cmd = message
     width_diff = command_width - len(mode_or_cmd)
     if width_diff > 0:
         mode_or_cmd += ' ' * width_diff
