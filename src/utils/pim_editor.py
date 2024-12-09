@@ -5,7 +5,7 @@ from .file_handler import open_file
 
 
 def normal_mode(key, state):
-    
+
     if state.command == '' and key == ord('i'):
         state.mode = 'INSERT'
     # elif command == '' and key == ord('p'):
@@ -63,7 +63,7 @@ def pim_editor(stdscr, file_name):
     state.file_name = file_name
 
     while True:
-        
+
         state.refresh()
         key = stdscr.getch()
 
