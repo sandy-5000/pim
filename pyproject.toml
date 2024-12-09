@@ -1,0 +1,12 @@
+[tool.poetry]
+authors = ["Sandy-5000"]
+description = "Trying to Mimic vim editor"
+name = "pim_editor"
+version = "0.1.0"
+
+[tool.poetry.dependencies]
+pyperclip = "^1.9.0"
+python = "^3.8"
+windows-curses = "^2.4.0"
+
+[tool.poetry.dev-dependencies]
