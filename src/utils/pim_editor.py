@@ -2,6 +2,7 @@ import sys
 import curses
 from .editor_state import EditorState
 from .file_handler import open_file
+from .key_handler import handle_backspace, handle_enter, handle_all_keys, handle_delete
 
 
 def normal_mode(key, state):
@@ -77,12 +78,11 @@ def pim_editor(stdscr, file_name):
             if key == 27: # Esc
                 state.mode = 'NORMAL'
                 continue
+            elif key == 330: # Delete
+                handle_delete(state)
             elif key in (curses.KEY_BACKSPACE, 127, 8):  # Backspace
-                # handle_backspace()
-                pass
+                handle_backspace(state)
             elif key in (curses.KEY_ENTER, 10):  # Enter
-                # handle_enter()
-                pass
+                handle_enter(state)
             else:
-                # handle_all_keys(key)
-                pass
+                handle_all_keys(state, key)
