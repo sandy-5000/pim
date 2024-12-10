@@ -25,6 +25,9 @@ class EditorState:
         self.show_line_numbers = True
         self.number_bar_width = 2
 
+        self.select_start = None
+        self.select_end = None
+
         self.stdscr = stdscr
 
         self.file_name = ''
@@ -152,7 +155,7 @@ class EditorState:
 
 
     def draw_footer(self):
-        command_width = self.width - 20
+        command_width = self.width - 26
         mode_or_cmd = f'-- {self.mode} --'
         if self.mode == 'NORMAL' and self.command:
             mode_or_cmd = self.command
@@ -163,8 +166,10 @@ class EditorState:
         mode_or_cmd = mode_or_cmd + (' ' * width_diff) if width_diff >= 0 else mode_or_cmd[-command_width:]
         row_position = self.cursor_y + self.view_y + 1
         col_position = self.cursor_x + self.view_x + 1
-        mode_and_position = f"{mode_or_cmd} Line: {row_position}, Col: {col_position}"
-        self.draw_line_to_screen(f"File: {self.file_name[:self.width - 6]}", self.height - 2)
+        mode_and_position = f"{mode_or_cmd} Line: {row_position}, Col: {col_position}".ljust(self.width)
+        display_file_name = self.file_name.replace('\\', '/').split('/').pop()
+        display_file_name = display_file_name[:self.width - 6]
+        self.draw_line_to_screen(f"File: {display_file_name}".ljust(self.width), self.height - 2)
         self.draw_line_to_screen(mode_and_position, self.height - 1)
 
 

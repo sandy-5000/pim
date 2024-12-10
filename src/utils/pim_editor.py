@@ -12,6 +12,12 @@ def normal_mode(key, state):
         state.mode = 'INSERT'
     elif state.command == '' and key == ord('p'):
         state.paste_from_clipboard()
+    elif state.command == '' and key == ord('B'):
+        state.set_cursor_y(0 - state.view_y)
+        state.set_cursor_x(0 - state.view_x)
+    elif state.command == '' and key == ord('G'):
+        state.set_cursor_y(len(state.text) - state.view_y)
+        state.set_cursor_x(len(state.text[-1]) - state.view_x)
     elif key in (curses.KEY_BACKSPACE, 127, 8):
         if state.command:
             state.command = state.command[0:len(state.command) - 1]
@@ -43,6 +49,14 @@ def normal_mode(key, state):
                 state.message = 'Invalid positions'
             else:
                 state.cut_to_clipboard(r[0].strip(), r[1].strip())
+        elif state.command.startswith(':'):
+            r = state.command[1:].strip()
+            try:
+                line_number = int(r) - 1
+                state.set_cursor_y(line_number - state.view_y)
+                state.set_cursor_x(0 - state.view_x)
+            except:
+                state.message = 'Invalid command'
         else:
             state.message = 'Invalid command'
         state.command = ''
