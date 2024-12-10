@@ -40,7 +40,7 @@ class EditorState:
         d = position - self.cursor_x
         if d < 0:
             d = abs(d)
-            while self.view_y + self.cursor_y > 0 and d > 0:
+            while self.view_y + self.cursor_y + self.cursor_x > 0 and d > 0:
                 if self.view_x + self.cursor_x < d:
                     d -= self.view_x + self.cursor_x + 1
                     self.set_cursor_y(self.cursor_y - 1)
@@ -56,7 +56,9 @@ class EditorState:
                         self.cursor_x = 0
                     d = 0
         elif d > 0:
-            while self.view_y + self.cursor_y > 0 and d > 0:
+            file_end = len(self.text) - 1
+            line_end = len(self.text[self.view_y + self.cursor_y]) 
+            while self.view_y + self.cursor_y + self.cursor_x < file_end + line_end and d > 0:
                 line_size = len(self.text[self.view_y + self.cursor_y])
                 if line_size - (self.view_x + self.cursor_x) < d:
                     d -= line_size - (self.view_x + self.cursor_x) + 1
@@ -77,22 +79,18 @@ class EditorState:
         if d < 0:
             d = abs(d)
             self.cursor_y -= d
-            self.adjust_view()
-            # if self.view_y + self.cursor_y >= d:
-            # else:
-            #     view_d = self.cursor_y + d
-            #     self.cursor_y = 0
-            #     self.view_y = max(0, self.view_y - view_d)
+            if self.cursor_y < 0:
+                self.view_y += self.cursor_y
+                self.cursor_y = 0
+                self.view_y = max(0, self.view_y)
         elif d > 0:
-            self.cursor_y += d
-            self.adjust_view()
-            # file_end = len(self.text) - 1
-            # screen_end = len(self.view_port) - 1 - self.cursor_y
-            # if self.view_y + self.cursor_y + d <= screen_end:
-            # else:
-            #     view_d = self.cursor_y + d - screen_end
-            #     self.cursor_y = screen_end
-            #     self.view_y = min(file_end, self.view_y + view_d)
+            file_end = len(self.text)
+            self.cursor_y = min(self.cursor_y + d, file_end)
+            screen_end = len(self.view_port) - 1
+            if self.cursor_y > screen_end:
+                self.view_y += self.cursor_y - screen_end
+                self.cursor_y = screen_end
+                self.view_y = min(file_end - self.view_port_height, self.view_y)
         try:
             line_size = len(self.text[self.view_y + self.cursor_y])
             self.cursor_x = min(self.cursor_x, line_size - self.view_x)
@@ -102,29 +100,6 @@ class EditorState:
         except:
             self.view_x = 0
             self.cursor_x = 0
-
-    def adjust_view(self):
-        if self.cursor_y < 0:
-            print('cane')
-            self.view_y += self.cursor_y
-            self.view_y = max(0, self.view_y)
-            self.cursor_y = 0
-        elif self.cursor_y > len(self.view_port) - 1:
-            self.view_y += self.cursor_y - len(self.view_port) + 1
-            self.view_y = min(self.view_y, len(self.text) - 1)
-            self.cursor_y = len(self.view_port) - 1
-            print(self.view_y, self.cursor_y)
-        left_pad = 0
-        if self.show_line_numbers:
-            left_pad = self.number_bar_width
-        if self.cursor_x < 0:
-            self.view_x += self.cursor_x
-            self.cursor_x = 0
-            self.view_x = max(0, self.view_x)
-        elif self.cursor_x > self.width - left_pad:
-            self.view_x += self.width - left_pad - self.cursor_x
-            self.cursor_x = self.width - left_pad
-            self.view_x = min(self.view_x, len(self.text[self.view_y + self.cursor_y]))
 
 
     def move_cursor(self, key):
@@ -145,7 +120,6 @@ class EditorState:
         self.width = width - 1
         self.view_port_height = self.height - 2
         self.number_bar_width = len(str(len(self.text))) + 1
-        self.adjust_view()
 
         self.stdscr.clear()
         self.set_view_port()
