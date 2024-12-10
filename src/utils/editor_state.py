@@ -1,4 +1,5 @@
 import curses
+import pyperclip
 
 
 class EditorState:
@@ -57,7 +58,7 @@ class EditorState:
                     d = 0
         elif d > 0:
             file_end = len(self.text) - 1
-            line_end = len(self.text[self.view_y + self.cursor_y]) 
+            line_end = len(self.text[self.view_y + self.cursor_y])
             while self.view_y + self.cursor_y + self.cursor_x < file_end + line_end and d > 0:
                 line_size = len(self.text[self.view_y + self.cursor_y])
                 if line_size - (self.view_x + self.cursor_x) < d:
@@ -71,7 +72,6 @@ class EditorState:
                         self.view_x += self.cursor_x - self.width + left_pad
                         self.cursor_x = self.width - left_pad
                     d = 0
-            return
 
 
     def set_cursor_y(self, position):
@@ -175,3 +175,65 @@ class EditorState:
         else:
             self.stdscr.addstr(index, 0, line[ : self.width])
 
+
+    def copy_to_clipboard(self, start, end):
+        if start != '' and start != '.':
+            try:
+                start = int(start)
+            except:
+                self.message = 'Invalid number format'
+                return
+        if end != '' and end != '.':
+            try:
+                end = int(end)
+            except:
+                self.message = 'Invalid number format'
+                return
+
+        text = self.text
+        start_x, start_y = 0, 0
+        end_x = len(text[-1]) - 1 if text else 0
+        end_y = len(text) - 1
+
+        if start == '.':
+            start_x = self.view_x + self.cursor_x
+            start_y = self.view_y + self.cursor_y
+        elif start != '':
+            start_y = max(0, start - 1)
+            start_x = 0
+
+        if end == '.':
+            end_x = self.view_x + self.cursor_x - 1
+            end_y = self.view_y + self.cursor_y
+        elif end != '':
+            end_y = min(end - 1, len(text) - 1)
+            end_x = len(text[end_y]) - 1
+
+        if [start_y, start_x] > [end_y, end_x]:
+            self.message = 'Invalid Range'
+            return
+
+        text_to_copy = ''
+        if start_y == end_y:
+            text_to_copy = text[start_y][start_x:end_x + 1]
+        else:
+            for y in range(start_y, end_y + 1):
+                if y == end_y:
+                    text_to_copy += text[y][:end_x + 1]
+                elif y == start_y:
+                    text_to_copy += text[y][start_x:] + '\n'
+                else:
+                    text_to_copy += text[y] + '\n'
+        pyperclip.copy(text_to_copy)
+        self.message = f'yanked {end_y - start_y + 1} lines.'
+
+
+    def paste_from_clipboard(self):
+        copied_text = pyperclip.paste()
+        copied_text = copied_text.replace('\r', '').replace('\t', ' ' * 4)
+        index_x = self.cursor_x + self.view_x
+        index_y = self.cursor_y + self.view_y
+        new_line = self.text[index_y][:index_x] + copied_text + self.text[index_y][index_x:]
+        btw_lines = [*new_line.split('\n')]
+        self.text = self.text[:index_y] + btw_lines + self.text[index_y + 1:]
+        self.set_cursor_x(self.cursor_x + len(copied_text))

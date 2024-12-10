@@ -9,8 +9,8 @@ def normal_mode(key, state):
 
     if state.command == '' and key == ord('i'):
         state.mode = 'INSERT'
-    # elif command == '' and key == ord('p'):
-    #     paste_from_clipboard()
+    elif state.command == '' and key == ord('p'):
+        state.paste_from_clipboard()
     elif key in (curses.KEY_BACKSPACE, 127, 8):
         if state.command:
             state.command = state.command[0:len(state.command) - 1]
@@ -34,8 +34,8 @@ def normal_mode(key, state):
             r = state.command[2:].split(',')
             if len(r) != 2:
                 state.message = 'Invalid positions'
-            # else:
-            #     copy_to_clipboard(r[0].strip(), r[1].strip())
+            else:
+                state.copy_to_clipboard(r[0].strip(), r[1].strip())
         else:
             state.message = 'Invalid command'
         state.command = ''
