@@ -106,12 +106,20 @@ class EditorState:
         match key:
             case curses.KEY_UP:
                 self.set_cursor_y(self.cursor_y - 1)
+            case curses.KEY_RIGHT:
+                self.set_cursor_x(self.cursor_x + 1)
             case curses.KEY_DOWN:
                 self.set_cursor_y(self.cursor_y + 1)
             case curses.KEY_LEFT:
                 self.set_cursor_x(self.cursor_x - 1)
-            case curses.KEY_RIGHT:
+            case 547:
+                self.set_cursor_y(self.cursor_y - 1)
+            case 400:
                 self.set_cursor_x(self.cursor_x + 1)
+            case 548:
+                self.set_cursor_y(self.cursor_y + 1)
+            case 391:
+                self.set_cursor_x(self.cursor_x - 1)
 
 
     def refresh(self):
@@ -177,6 +185,14 @@ class EditorState:
 
 
     def copy_to_clipboard(self, start, end):
+        self.process_segment_range(start, end)
+
+
+    def cut_to_clipboard(self, start, end):
+        self.process_segment_range(start, end, True)
+
+
+    def process_segment_range(self, start, end, cut_segment=False):
         if start != '' and start != '.':
             try:
                 start = int(start)
@@ -212,7 +228,14 @@ class EditorState:
         if [start_y, start_x] > [end_y, end_x]:
             self.message = 'Invalid Range'
             return
+        if cut_segment:
+            self.cut_segment(start_x, start_y, end_x, end_y)
+        else:
+            self.copy_segment(start_x, start_y, end_x, end_y)
 
+
+    def copy_segment(self, start_x, start_y, end_x, end_y):
+        text = self.text
         text_to_copy = ''
         if start_y == end_y:
             text_to_copy = text[start_y][start_x:end_x + 1]
@@ -225,7 +248,31 @@ class EditorState:
                 else:
                     text_to_copy += text[y] + '\n'
         pyperclip.copy(text_to_copy)
+        self.set_cursor_y(end_y - self.view_y)
+        self.set_cursor_x(end_x + 1 - self.view_x)
         self.message = f'yanked {end_y - start_y + 1} lines.'
+
+
+    def cut_segment(self, start_x, start_y, end_x, end_y, copy_it=True):
+        text_to_cut = ''
+        if start_y == end_y:
+            text_to_cut = self.text[start_y][start_x:end_x + 1]
+            self.text[start_y] = self.text[start_y][:start_x] + self.text[start_y][end_x + 1:]
+        else:
+            for y in range(start_y, end_y + 1):
+                if y == end_y:
+                    text_to_cut += self.text[y][:end_x + 1]
+                elif y == start_y:
+                    text_to_cut += self.text[y][start_x:] + '\n'
+                else:
+                    text_to_cut += self.text[y] + '\n'
+            new_line = self.text[start_y][:start_x] + self.text[end_y][end_x + 1:]
+            self.text[start_y:end_y + 1] = [new_line]
+        if copy_it:
+            pyperclip.copy(text_to_cut)
+            self.message = f'removed {end_y - start_y + 1} lines.'
+        self.set_cursor_y(start_y - self.view_y)
+        self.set_cursor_x(start_x - self.view_x)
 
 
     def paste_from_clipboard(self):

@@ -1,5 +1,6 @@
 import sys
 import curses
+import curses.ascii
 from .editor_state import EditorState
 from .file_handler import open_file
 from .key_handler import handle_backspace, handle_enter, handle_all_keys, handle_delete
@@ -36,6 +37,12 @@ def normal_mode(key, state):
                 state.message = 'Invalid positions'
             else:
                 state.copy_to_clipboard(r[0].strip(), r[1].strip())
+        elif state.command.startswith(':d'):
+            r = state.command[2:].split(',')
+            if len(r) != 2:
+                state.message = 'Invalid positions'
+            else:
+                state.cut_to_clipboard(r[0].strip(), r[1].strip())
         else:
             state.message = 'Invalid command'
         state.command = ''
@@ -67,8 +74,7 @@ def pim_editor(stdscr, file_name):
 
         state.refresh()
         key = stdscr.getch()
-
-        if key in (curses.KEY_UP, curses.KEY_DOWN, curses.KEY_LEFT, curses.KEY_RIGHT):
+        if key in (curses.KEY_UP, curses.KEY_DOWN, curses.KEY_LEFT, curses.KEY_RIGHT, 547, 400, 548, 391):
             state.move_cursor(key)
             continue
         if state.mode == 'NORMAL':
