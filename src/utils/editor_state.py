@@ -90,7 +90,7 @@ class EditorState:
             if self.cursor_y > screen_end:
                 self.view_y += self.cursor_y - screen_end
                 self.cursor_y = screen_end
-                self.view_y = min(file_end - self.view_port_height, self.view_y)
+                self.view_y = min(file_end - len(self.view_port), self.view_y)
         try:
             line_size = len(self.text[self.view_y + self.cursor_y])
             self.cursor_x = min(self.cursor_x, line_size - self.view_x)
