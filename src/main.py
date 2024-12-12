@@ -6,7 +6,7 @@ from utils.pim_editor import pim_editor
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print('Usage: python pim.py <file-name>')
+        print('Usage: pim <file-name>')
         sys.exit(1)
 
     file_name = sys.argv[1]
