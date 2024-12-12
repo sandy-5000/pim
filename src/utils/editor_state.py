@@ -324,8 +324,9 @@ class EditorState:
                 else:
                     text_to_copy += text[y] + '\n'
         pyperclip.copy(text_to_copy)
-        self.set_cursor_y(end_y - self.view_y)
-        self.set_cursor_x(end_x + 1 - self.view_x)
+        if not self.ordered_select[0] or not self.ordered_select[1]:
+            self.set_cursor_y(end_y - self.view_y)
+            self.set_cursor_x(end_x + 1 - self.view_x)
         self.message = f'yanked {end_y - start_y + 1} lines.'
 
 
