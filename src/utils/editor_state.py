@@ -199,16 +199,23 @@ class EditorState:
 
 
     def draw_with_selection(self, line, index):
-        start, end = self.ordered_select
-        if not start or not end:
+        if not self.any_selected():
             self.stdscr.addstr(index, 0, line)
             return
+        start, end = self.ordered_select
         [start_x, start_y], [end_x, end_y] = start, end
         line_number, content = self.split_line_number(line)
         left_padding = len(line_number)
         if left_padding:
             self.stdscr.addstr(index, 0, line_number)
-        if start_y < index + self.view_y < end_y:
+        if start_y == end_y and index + self.view_y == start_y:
+            break_point_1 = start_x - self.view_x
+            break_point_2 = end_x + 1 - self.view_x
+            left_s, mid_s, right_s = content[:break_point_1], content[break_point_1:break_point_2], content[break_point_2:]
+            self.stdscr.addstr(index, left_padding, left_s)
+            self.stdscr.addstr(index, left_padding + len(left_s), mid_s, curses.A_REVERSE)
+            self.stdscr.addstr(index, left_padding + len(left_s + mid_s), right_s)
+        elif start_y < index + self.view_y < end_y:
             self.stdscr.addstr(index, left_padding, content, curses.A_REVERSE)
         elif start_y == index + self.view_y:
             break_point = start_x - self.view_x
@@ -241,8 +248,30 @@ class EditorState:
 
 
     def copy_selected(self):
+        if not self.any_selected():
+            return
         [start_x, start_y], [end_x, end_y] = self.ordered_select
         self.copy_segment(start_x, start_y, end_x, end_y)
+
+
+    def cut_selected(self):
+        if not self.any_selected():
+            return
+        [start_x, start_y], [end_x, end_y] = self.ordered_select
+        self.cut_segment(start_x, start_y, end_x, end_y)
+        self.reset_select()
+
+
+    def delete_selected(self):
+        if not self.any_selected():
+            return
+        [start_x, start_y], [end_x, end_y] = self.ordered_select
+        self.cut_segment(start_x, start_y, end_x, end_y, False)
+        self.reset_select()
+
+
+    def any_selected(self):
+        return self.ordered_select[0] and self.ordered_select[1]
 
 
     def handle_select(self):
@@ -324,7 +353,7 @@ class EditorState:
                 else:
                     text_to_copy += text[y] + '\n'
         pyperclip.copy(text_to_copy)
-        if not self.ordered_select[0] or not self.ordered_select[1]:
+        if not self.any_selected():
             self.set_cursor_y(end_y - self.view_y)
             self.set_cursor_x(end_x + 1 - self.view_x)
         self.message = f'yanked {end_y - start_y + 1} lines.'
