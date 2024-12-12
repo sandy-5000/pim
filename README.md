@@ -9,3 +9,7 @@ Pim is a terminal-based text editor inspired by Vim, designed to be lightweight,
 - **Command Mode**: Execute commands like `:q` (quit), `:set nu` (enable line numbers), `:unset nu` (disable line numbers), and more.
 - **Clipboard Operations**: Copy and paste content using custom commands.
 - **Navigation**: Move the cursor using arrow keys or commands.
+
+```sh
+pyinstaller src/pim.py --onefile
+```
