@@ -11,6 +11,7 @@ def handle_backspace(state):
         state.set_cursor_x(state.cursor_x - 1)
         state.text[index_y - 1] += state.text[index_y]
         state.text.pop(index_y)
+    state.reset_select()
 
 
 def handle_delete(state):
@@ -22,6 +23,7 @@ def handle_delete(state):
     elif index_y + 1 < len(state.text):
         state.text[index_y] += state.text[index_y + 1]
         state.text.pop(index_y + 1)
+    state.reset_select()
 
 
 def handle_enter(state):
@@ -34,6 +36,7 @@ def handle_enter(state):
     spaces = ' ' * spaces_len
     state.text.insert(index_y + 1, spaces + new_line)
     state.set_cursor_x(state.cursor_x + spaces_len + 1)
+    state.reset_select()
 
 
 def handle_all_keys(state, key):
@@ -44,4 +47,5 @@ def handle_all_keys(state, key):
     index_y = state.cursor_y + state.view_y
     state.text[index_y] = state.text[index_y][:index_x] + char + state.text[index_y][index_x:]
     state.set_cursor_x(state.cursor_x + len(char))
+    state.reset_select()
 

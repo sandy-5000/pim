@@ -106,6 +106,7 @@ class EditorState:
 
 
     def move_cursor(self, key):
+        self.reset_select()
         match key:
             case curses.KEY_UP:
                 self.set_cursor_y(self.cursor_y - 1)
@@ -115,6 +116,11 @@ class EditorState:
                 self.set_cursor_y(self.cursor_y + 1)
             case curses.KEY_LEFT:
                 self.set_cursor_x(self.cursor_x - 1)
+
+
+    def move_select_cursor(self, key):
+        self.handle_select()
+        match key:
             case 547:
                 self.set_cursor_y(self.cursor_y - 1)
             case 400:
@@ -123,6 +129,7 @@ class EditorState:
                 self.set_cursor_y(self.cursor_y + 1)
             case 391:
                 self.set_cursor_x(self.cursor_x - 1)
+        self.handle_select()
 
 
     def refresh(self):
@@ -195,6 +202,36 @@ class EditorState:
 
     def cut_to_clipboard(self, start, end):
         self.process_segment_range(start, end, True)
+
+
+    def copy_selected(self):
+        start = self.select_start
+        end = self.select_end
+        if start == None or end == None or start == end:
+            return
+        if start > end:
+            start, end = end, start
+        start[0] += self.view_x
+        start[0] += self.view_y
+        end[0] += self.view_x
+        end[1] += self.view_y
+        if end[0] == 0:
+            end[1] -= 1
+            end[0] = len(self.text[end[1]]) - 1
+        else:
+            end[0] -= 1
+        self.copy_segment(start[0], start[1], end[0], end[1])
+
+
+    def handle_select(self):
+        if self.select_start == None:
+            self.select_start = [self.cursor_x, self.cursor_y]
+        self.select_end = [self.cursor_x, self.cursor_y]
+
+
+    def reset_select(self):
+        self.select_start = None
+        self.select_end = None
 
 
     def process_segment_range(self, start, end, cut_segment=False):
