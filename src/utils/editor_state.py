@@ -28,6 +28,8 @@ class EditorState:
         self.select_start = None
         self.select_end = None
 
+        self.ordered_select = [None, None]
+
         self.stdscr = stdscr
 
         self.file_name = ''
@@ -191,9 +193,43 @@ class EditorState:
             else:
                 length = self.width
                 trimmed_line = line[self.view_x: self.view_x + length]
-            self.stdscr.addstr(index, 0, trimmed_line)
+            self.draw_with_selection(trimmed_line, index)
         else:
             self.stdscr.addstr(index, 0, line[ : self.width])
+
+
+    def draw_with_selection(self, line, index):
+        start, end = self.ordered_select
+        if not start or not end:
+            self.stdscr.addstr(index, 0, line)
+            return
+        [start_x, start_y], [end_x, end_y] = start, end
+        line_number, content = self.split_line_number(line)
+        left_padding = len(line_number)
+        if left_padding:
+            self.stdscr.addstr(index, 0, line_number)
+        if start_y < index + self.view_y < end_y:
+            self.stdscr.addstr(index, left_padding, content, curses.A_REVERSE)
+        elif start_y == index + self.view_y:
+            break_point = start_x - self.view_x
+            left_s, right_s = content[:break_point], content[break_point:]
+            self.stdscr.addstr(index, left_padding, left_s)
+            self.stdscr.addstr(index, left_padding + len(left_s), right_s, curses.A_REVERSE)
+        elif end_y == index + self.view_y :
+            break_point = end_x + 1 - self.view_x
+            left_s, right_s = content[:break_point], content[break_point:]
+            self.stdscr.addstr(index, left_padding, left_s, curses.A_REVERSE)
+            self.stdscr.addstr(index, left_padding + len(left_s), right_s)
+        else:
+            self.stdscr.addstr(index, left_padding, content)
+
+
+    def split_line_number(self, line):
+        if not self.show_line_numbers:
+            return '', line
+        line_number = line[:self.number_bar_width]
+        content = line[self.number_bar_width:]
+        return line_number, content
 
 
     def copy_to_clipboard(self, start, end):
@@ -205,33 +241,31 @@ class EditorState:
 
 
     def copy_selected(self):
-        start = self.select_start
-        end = self.select_end
-        if start == None or end == None or start == end:
+        [start_x, start_y], [end_x, end_y] = self.ordered_select
+        self.copy_segment(start_x, start_y, end_x, end_y)
+
+
+    def handle_select(self):
+        if self.select_start == None:
+            self.select_start = [self.cursor_x + self.view_x, self.cursor_y + self.view_y]
+        self.select_end = [self.cursor_x + self.view_x, self.cursor_y + self.view_y]
+        if self.select_start == self.select_end:
             return
-        if start > end:
+        start, end = [*self.select_start], [*self.select_end]
+        if (start[1], start[0]) > (end[1], end[0]):
             start, end = end, start
-        start[0] += self.view_x
-        start[0] += self.view_y
-        end[0] += self.view_x
-        end[1] += self.view_y
         if end[0] == 0:
             end[1] -= 1
             end[0] = len(self.text[end[1]]) - 1
         else:
             end[0] -= 1
-        self.copy_segment(start[0], start[1], end[0], end[1])
-
-
-    def handle_select(self):
-        if self.select_start == None:
-            self.select_start = [self.cursor_x, self.cursor_y]
-        self.select_end = [self.cursor_x, self.cursor_y]
+        self.ordered_select = [start, end]
 
 
     def reset_select(self):
         self.select_start = None
         self.select_end = None
+        self.ordered_select = [None, None]
 
 
     def process_segment_range(self, start, end, cut_segment=False):
