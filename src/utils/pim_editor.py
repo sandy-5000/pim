@@ -68,7 +68,7 @@ def normal_mode(key, state):
 
 
 def handle_ctrl_operations(key, state):
-    if key == 2:
+    if key == 4:
         state.copy_selected()
     elif key == 24:
         state.cut_selected()
@@ -101,7 +101,7 @@ def pim_editor(stdscr, file_name):
         if key in (547, 400, 548, 391):
             state.move_select_cursor(key)
             continue
-        if key == 2:
+        if key == 4:
             handle_ctrl_operations(key, state)
             continue
         if state.mode == 'NORMAL':
