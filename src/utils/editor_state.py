@@ -279,6 +279,16 @@ class EditorState:
         return self.ordered_select[0] and self.ordered_select[1]
 
 
+    def select_all(self):
+        self.ordered_select = [
+            [0, 0],
+            [
+                max(len(self.text[-1]) - 1 if self.text else 0, 0),
+                max(len(self.text) - 1, 0)
+            ]
+        ]
+
+
     def handle_select(self):
         if self.select_start == None:
             self.select_start = [self.cursor_x + self.view_x, self.cursor_y + self.view_y]
