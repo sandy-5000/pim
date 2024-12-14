@@ -1,8 +1,7 @@
 import sys
 import curses
-import curses.ascii
 from .editor_state import EditorState
-from .file_handler import open_file
+from .file_handler import open_file, save_file
 from .key_handler import handle_backspace, handle_enter, handle_all_keys, handle_delete
 
 
@@ -18,17 +17,17 @@ def normal_mode(key, state):
     elif state.command == '' and key == ord('G'):
         state.set_cursor_y(len(state.text) - state.view_y)
         state.set_cursor_x(len(state.text[-1]) - state.view_x)
-    elif key in (curses.KEY_BACKSPACE, 127, 8):
+    elif key in (curses.KEY_BACKSPACE, 8, 127):
         if state.command:
             state.command = state.command[0:len(state.command) - 1]
-    elif key in (curses.KEY_ENTER, 10):
+    elif key in (curses.KEY_ENTER, 10, 13):
         state.command = state.command.strip()
         if state.command == ':q':
             return False
-        # elif command == ':w':
-        #     save_file()
+        elif state.command == ':w':
+            save_file(state.file_name, state.text)
         elif state.command == ':r':
-            open_file()
+            open_file(state.file_name)
         elif state.command.startswith(':set '):
             r = state.command[5:]
             if r == 'nu':
@@ -68,14 +67,17 @@ def normal_mode(key, state):
 
 
 def handle_ctrl_operations(key, state):
-    if key == 4:
+    if key == 3:
         state.copy_selected()
+    elif key == 22:
+        state.paste_from_clipboard()
     elif key == 24:
         state.cut_selected()
 
 
 def pim_editor(stdscr, file_name):
     curses.curs_set(1)
+    curses.raw()
 
     text, error = open_file(file_name)
     if error != None:
@@ -101,8 +103,9 @@ def pim_editor(stdscr, file_name):
         if key in (547, 400, 548, 391):
             state.move_select_cursor(key)
             continue
-        if key == 4:
+        if key == 3:
             handle_ctrl_operations(key, state)
+            stdscr.refresh()
             continue
         if state.mode == 'NORMAL':
             if not normal_mode(key, state):
@@ -113,11 +116,11 @@ def pim_editor(stdscr, file_name):
                 continue
             elif key == 330: # Delete
                 handle_delete(state)
-            elif key in (curses.KEY_BACKSPACE, 127, 8):  # Backspace
+            elif key in (curses.KEY_BACKSPACE, 8, 127):  # Backspace
                 handle_backspace(state)
-            elif key in (curses.KEY_ENTER, 10):  # Enter
+            elif key in (curses.KEY_ENTER, 10, 13):  # Enter
                 handle_enter(state)
-            elif key in (24,):
+            elif key in (22, 24):
                 handle_ctrl_operations(key, state)
             else:
                 handle_all_keys(state, key)

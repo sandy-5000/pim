@@ -249,6 +249,11 @@ class EditorState:
 
     def copy_selected(self):
         if not self.any_selected():
+            y = self.view_y + self.cursor_y
+            start_x, end_x = 0, len(self.text[y]) - 1
+            self.copy_segment(start_x, y, end_x, y)
+            copied_text = '\n' + pyperclip.paste()
+            pyperclip.copy(copied_text)
             return
         [start_x, start_y], [end_x, end_y] = self.ordered_select
         self.copy_segment(start_x, start_y, end_x, end_y)
